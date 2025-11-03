@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>给宝贝❤的祝福 ✨</title>
+<style>
+  /* =========== 基础页面背景（奶黄色+网格） =========== */
+  body {
+    margin: 0;
+    height: 100vh;
+    background-color: #FFFAE8; /* 奶黄色米白 */
+    /* 用两个重复渐变叠加成网格线 */
+    background-image:
+      repeating-linear-gradient(
+        to right,
+        rgba(0,0,0,0.07) 0px,
+        rgba(0,0,0,0.07) 1px,
+        transparent 1px,
+        transparent 40px
+      ),
+      repeating-linear-gradient(
+        to bottom,
+        rgba(0,0,0,0.07) 0px,
+        rgba(0,0,0,0.07) 1px,
+        transparent 1px,
+        transparent 40px
+      );
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+      sans-serif;
+    position: relative;
+    overflow: hidden; /* 防止出现滚动条，弹窗就像贴在这张纸上 */
+  }
+
+  /* 容器只是为了放弹窗 */
+  #board {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* =========== 弹窗样式 =========== */
+  .note {
+    position: absolute;
+    min-width: 120px;
+    max-width: 200px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    box-shadow: 0 8px 18px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.08);
+    font-size: 14px;
+    line-height: 1.4;
+    color: #333;
+    border: 1px solid rgba(0,0,0,0.06);
+
+    /* 出现动画的初始状态 */
+    opacity: 0;
+    transform: scale(0.7) translateY(10px) rotate(var(--rot, 0deg));
+    animation: popIn 0.4s forwards ease-out;
+  }
+
+  /* 三种色系：浅蓝 / 浅粉 / 淡橙 */
+  .note.blue  { background-color: #EAF5FF; }
+  .note.pink  { background-color: #FFEFF4; }
+  .note.orange{ background-color: #FFF5E6; }
+
+  /* 轻轻放大的弹出动画 */
+  @keyframes popIn {
+    0% {
+      opacity: 0;
+      transform: scale(0.7) translateY(10px) rotate(var(--rot, 0deg));
+    }
+    60% {
+      opacity: 1;
+      transform: scale(1.05) translateY(0px) rotate(var(--rot, 0deg));
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) rotate(var(--rot, 0deg));
+    }
+  }
+
+  /* 可选：右下角一个小角标，纯装饰 */
+  .corner-hint {
+    position: absolute;
+    right: 12px;
+    bottom: 10px;
+    font-size: 12px;
+    color: rgba(0,0,0,0.35);
+    user-select: none;
+    pointer-events: none;
+  }
+
+  @media (max-width:480px){
+    .note {
+      min-width: 100px;
+      max-width: 160px;
+      font-size: 13px;
+    }
+  }
+</style>
+</head>
+<body>
+  <div id="board"></div>
+  <div class="corner-hint">给你的小小祝福 ʕ•͡-•ʔ♡</div>
+
+<script>
+(function () {
+  // 祝福语池（可以继续加）
+  const messages = [
+    "祝你幸福 🩷",
+    "天天开心！",
+    "保持好心情～",
+    "一切都会顺利的",
+    "你真的很棒！",
+    "被温柔对待吧",
+    "心想事成",
+    "睡得香，做的梦都甜",
+    "平安喜乐",
+    "今天也要可爱一下",
+    "你值得被爱",
+    "多喝水别熬夜嘿",
+    "好运正向你奔来",
+    "放轻松 深呼吸",
+    "今天的你闪闪发光",
+    "别忘了微笑 :)",
+    "辛苦啦，抱抱你",
+    "愿你被世界温柔以待",
+    "你在慢慢变更好",
+    "休息一下也没关系",
+    "别怕未来，好戏还在后面",
+    "接收快乐小电波 ⚡",
+    "宇宙会偷偷偏爱你的",
+    "你永远不孤单，你有向光明",
+    "所有努力都算数",
+    "愿你被喜欢的人喜欢",
+    "不急不慌 慢慢走",
+    "今天也会是好日子",
+    "开心是头等大事",
+    "祝你超幸运！🍀",
+    "被爱包围ing…",
+    "我爱你",
+    "你值得世界上最好的一切",
+    "别担心啦 真的没事",
+    "好消息正在路上 📬",
+    "请继续发光 ✨",
+    "给自己点掌声 👏",
+    "抱抱你一下～～(っ˘̩╭╮˘̩)っ",
+    "愿你永远被温柔以待",
+    "今天也要对自己好一点",
+    "你已经做得很好了",
+    "你最漂亮了",
+    "快乐升级+1",
+    "小小烦恼都会被解决的",
+    "好运 loading…",
+    "世界正在偷偷给你准备惊喜",
+    "你是特别的存在",
+    "所有不开心都会过去",
+    "可爱到不行耶你 ✿",
+    "未来会更舒服的"
+  ];
+
+  // 弹窗颜色class
+  const colors = ["blue", "pink", "orange"];
+
+  const board = document.getElementById("board");
+
+  const TOTAL_NOTES = 200; // 最终数量
+  const INTERVAL_MS = 120; // 每隔多少毫秒生成一个
+
+  let createdCount = 0;
+
+  function createNote() {
+    if (createdCount >= TOTAL_NOTES) return; // 到200就停
+
+    const note = document.createElement("div");
+    note.classList.add("note");
+
+    // 随机颜色
+    const colorClass = colors[Math.floor(Math.random() * colors.length)];
+    note.classList.add(colorClass);
+
+    // 随机祝福语
+    const msg = messages[Math.floor(Math.random() * messages.length)];
+    note.textContent = msg;
+
+    // 随机轻微旋转角度（-5度到+5度之间）
+    const rotDeg = (Math.random() * 10 - 5).toFixed(2);
+    note.style.setProperty("--rot", rotDeg + "deg");
+
+    // 先塞到DOM里，才能知道它的尺寸
+    board.appendChild(note);
+
+    // 计算随机位置（避免超出屏幕）
+    // 先拿到视口宽高
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    const noteRect = note.getBoundingClientRect();
+    const noteW = noteRect.width;
+    const noteH = noteRect.height;
+
+    // 可放置的最大x/y
+    const maxX = Math.max(0, vw - noteW - 10); // 留10px缓冲
+    const maxY = Math.max(0, vh - noteH - 10);
+
+    const randX = Math.random() * maxX;
+    const randY = Math.random() * maxY;
+
+    note.style.left = randX + "px";
+    note.style.top  = randY + "px";
+
+    createdCount++;
+  }
+
+  // 逐步生成
+  const timer = setInterval(() => {
+    createNote();
+    if (createdCount >= TOTAL_NOTES) {
+      clearInterval(timer);
+    }
+  }, INTERVAL_MS);
+
+  // （可选）窗口缩放后，后续生成的贴纸依然会贴在新的范围内
+  // 已经生成的不会重排，这样更像“贴在纸上的便利贴”
+})();
+</script>
+</body>
+</html>
